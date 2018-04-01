@@ -14,8 +14,12 @@ namespace RxUsageSample
     {
         static void Main(string[] args)
         {
-            var mouseTrack = new MouseSpeedometer(new KeyAndMouseLogger(new MouseLogger(), new KeyLogger(
+            მაუსის_ივენთებზე();
+        }
 
+        private static void მაუსის_ივენთებზე()
+        {
+            var mouseTrack = new MouseSpeedometer(new KeyAndMouseLogger(new MouseLogger(), new KeyLogger(
                 new List<IKeyParser>()
                 {
                     new KeysToShortcutsParser()
@@ -27,8 +31,6 @@ namespace RxUsageSample
             //    Console.WriteLine(
             //        $"{Environment.NewLine}Event date:{e.Date} Length:{e.Length} Speed_PX/MS:{e.SpeedPxMs}{Environment.NewLine}");
             //};
-
-
 
 
             ////ეს არის ივენთის მამაპაპური ჰენდლერი
@@ -44,14 +46,23 @@ namespace RxUsageSample
                 .FromEventPattern<EventHandler<MouseMovementEventArgs>, MouseMovementEventArgs>
                 (h => mouseTrack.MouseSpeedUpdated += h, h => mouseTrack.MouseSpeedUpdated -= h);
 
-            toObservable.Subscribe(
-                o => Console.WriteLine(new string('=', Convert.ToInt32(o.EventArgs.SpeedPxMs * 10))));
+            //სპიდომეტრი დავმალეთ
+            //toObservable.Subscribe(
+            //    o => Console.WriteLine(new string('=', Convert.ToInt32(o.EventArgs.SpeedPxMs * 10))));
 
+            var სიჩქარეები = toObservable.Select(o => o.EventArgs.SpeedPxMs);
 
+            var მარტო_ჩქარები = სიჩქარეები.Where(o => o > 1);
+            var უფრო_ჩქარები = მარტო_ჩქარები.Where(o => o > 2);
+            var იმენა_ჩქარები = უფრო_ჩქარები.Where(o => o > 3);
+            var ვაბშე_ჩქარები = იმენა_ჩქარები.Where(o => o > 4);
 
+            მარტო_ჩქარები.Subscribe(c => Console.WriteLine("Nela!"));
+            უფრო_ჩქარები.Subscribe(c => Console.WriteLine("Azri araaq!"));
+            იმენა_ჩქარები.Subscribe(c => Console.WriteLine("Cudi gzaa!"));
+            ვაბშე_ჩქარები.Subscribe(c => Console.WriteLine("Mewyineba boz.."));
 
             mouseTrack.Start();
-
         }
     }
 }
