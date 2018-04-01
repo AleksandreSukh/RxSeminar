@@ -14,7 +14,23 @@ namespace RxUsageSample
     {
         static void Main(string[] args)
         {
-            მაუსის_ივენთებზე();
+            //მაუსის_ივენთებზე();
+
+            //Window();
+
+            System.Threading.Thread.Sleep(-1);
+        }
+
+        private static void Window()
+        {
+            var mainSequence = Observable.Interval(TimeSpan.FromSeconds(1));
+            var seqWindowed = mainSequence.Window(() => Observable.Interval(TimeSpan.FromSeconds(6)));
+
+            seqWindowed.Subscribe(თვითონვინდოუ =>
+            {
+                Console.WriteLine($"\nNew window created at: {DateTime.Now}\n");
+                თვითონვინდოუ.Subscribe(x => { Console.WriteLine("In window : {0}", x); });
+            });
         }
 
         private static void მაუსის_ივენთებზე()
