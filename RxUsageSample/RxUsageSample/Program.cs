@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Linq;
@@ -14,12 +15,26 @@ namespace RxUsageSample
     {
         static void Main(string[] args)
         {
+
+            //=======================================================================================
+            var interval = Observable.Interval(TimeSpan.FromMilliseconds(1000));
+            interval.Dump();
+            var ათეულები = interval.Select(i => (i / 10) % 10);
+
+            ათეულები.Dump();
+
+            var ათეულები_მარტო = ათეულები.DistinctUntilChanged();
+
+            ათეულები_მარტო.Dump();
+
+
             //მაუსის_ივენთებზე();
 
             //Window();
 
             System.Threading.Thread.Sleep(-1);
         }
+
 
         private static void Window()
         {
@@ -81,4 +96,32 @@ namespace RxUsageSample
             mouseTrack.Start();
         }
     }
+
+    public static class LinqPadLike
+    {
+        public static void DumpLatest<T>(this IObservable<T> observable)
+        {
+            observable.Subscribe(o => Console.WriteLine(o));
+        }
+
+        static ConcurrentDictionary<object, List<object>> CurrentlyBeingDumped = new ConcurrentDictionary<object, List<object>>();
+
+        public static void Dump<T>(this IObservable<T> observable)
+        {
+            var contains = CurrentlyBeingDumped.ContainsKey(observable);
+            var current = CurrentlyBeingDumped.GetOrAdd(observable, o => new List<object>());
+            if (!contains)
+            {
+                observable.Subscribe(o =>
+                {
+                    current.Add(o);
+                    var id = observable.ToString().Split('.').Last();
+                    Console.WriteLine($"//>>>>>>>>>>>>>>>>>>>>>>>>:{id}");
+                    current.ForEach(c => Console.WriteLine(c));
+                    Console.WriteLine($"//<<<<<<<<<<<<<<<<<<<<<<<<:{id}");
+                });
+            }
+        }
+    }
+
 }
