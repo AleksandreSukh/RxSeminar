@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,7 +22,9 @@ namespace RxUsageSample
 
             //ცვლილებაზე_რეაგირება();
 
-            //მაუსის_ივენთებზე();
+            //ცვლილებაზე_რეაგირება2();
+
+            მაუსის_ივენთებზე();
 
             System.Threading.Thread.Sleep(-1);
         }
@@ -36,12 +39,14 @@ namespace RxUsageSample
                 .Take(20);
 
             eventSequence
+                //Select პროსტა დასალოგად
                 .Select(currentValue =>
                 {
                     currentValue.Dump();
                     return currentValue;
                 })
-                .DistinctUntilChanged()
+                .DistinctUntilChanged()// <----------ეს არი აქ მთავარი
+                                       //Select პროსტა დასალოგად
                 .Select(currentValue =>
                 {
                     var res = currentValue ? "Connection OK" : "Disconnected";
@@ -49,6 +54,49 @@ namespace RxUsageSample
                     return res;
                 })
                 .DumpLatest();
+        }
+        private static void ცვლილებაზე_რეაგირება2()
+        {
+            var random = new Random();
+
+            var eventSequence = Observable.Interval(TimeSpan.FromMilliseconds(100))
+                .Select(i => random.Next(0, 3));
+
+            var buferred = eventSequence
+                //Select პროსტა დასალოგად
+                .Select(currentValue =>
+                {
+                    //currentValue.Dump();
+                    return currentValue;
+                })
+                .Buffer(10);
+
+            var resultOfBuffers = buferred.Select(b => b.Count(e => e != 0) / (double)b.Count() > 0.6);
+
+            resultOfBuffers
+            .Select(currentValue => currentValue ? "Connection OK" : "Disconnected")
+            //Select პროსტა დასალოგად
+            .Select(currentValue =>
+            {
+                    currentValue.Dump();
+                    return currentValue;
+            })
+            .DistinctUntilChanged()
+            .DumpLatest("DistinctOnly");
+
+
+
+
+            ////მოკლედ იქნებოდა ასე
+            //var random = new Random();
+
+            //Observable.Interval(TimeSpan.FromMilliseconds(100))
+            //    .Select(i => random.Next(0, 4))
+            //    .Buffer(10)
+            //    .Select(b => b.Count(e => e != 0) / (double)b.Count() > 0.6)
+            //    .Select(currentValue => currentValue ? "Connection OK" : "Disconnected")
+            //    .DistinctUntilChanged()
+            //    .DumpLatest();
         }
 
         private static void უბრალოდ_ფილტრი()
@@ -118,10 +166,26 @@ namespace RxUsageSample
             var იმენა_ჩქარები = უფრო_ჩქარები.Where(o => o > 3);
             var ვაბშე_ჩქარები = იმენა_ჩქარები.Where(o => o > 4);
 
-            მარტო_ჩქარები.Subscribe(c => Console.WriteLine("Nela!"));
-            უფრო_ჩქარები.Subscribe(c => Console.WriteLine("Azri araaq!"));
-            იმენა_ჩქარები.Subscribe(c => Console.WriteLine("Cudi gzaa!"));
-            ვაბშე_ჩქარები.Subscribe(c => Console.WriteLine("Mewyineba boz.."));
+            მარტო_ჩქარები.Subscribe(c =>
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Nela!");
+            });
+            უფრო_ჩქარები.Subscribe(c =>
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("Azri araaq!");
+            });
+            იმენა_ჩქარები.Subscribe(c =>
+            {
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+                Console.WriteLine("Cudi gzaa!");
+            });
+            ვაბშე_ჩქარები.Subscribe(c =>
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Mewyineba boz..");
+            });
 
             mouseTrack.Start();
         }
@@ -129,23 +193,24 @@ namespace RxUsageSample
 
     public static class LinqPadLike
     {
+        public static void Dump<T>(this T obj, string id = null)
+        {
+            Console.WriteLine(obj);
+        }
+
         public static void DumpLatest<T>(this IObservable<T> observable, string id = null)
         {
             if (id == null)
                 id = GetObservableId(observable);
             observable.Subscribe(o =>
             {
-                Console.WriteLine($"//||||||||||||||||||||||||:{id}");
-                Dump(o);
+                Console.Write($"//||||||||||||||||||||||||:{id} Result: ");
+                o.Dump();
             });
         }
 
         static ConcurrentDictionary<object, List<object>> CurrentlyBeingDumped = new ConcurrentDictionary<object, List<object>>();
 
-        public static void Dump<T>(this T obj)
-        {
-            Console.WriteLine(obj);
-        }
         public static void Dump<T>(this IObservable<T> observable, string id = null)
         {
             var contains = CurrentlyBeingDumped.ContainsKey(observable);
@@ -157,9 +222,9 @@ namespace RxUsageSample
                     current.Add(o);
                     if (id == null)
                         id = GetObservableId(observable);
-                    Console.WriteLine($"//>>>>>>>>>>>>>>>>>>>>>>>>:{id}");
-                    current.ForEach(c => Console.WriteLine(c));
-                    Console.WriteLine($"//<<<<<<<<<<<<<<<<<<<<<<<<:{id}");
+                    $"//>>>>>>>>>>>>>>>>>>>>>>>>:{id}".Dump();
+                    current.ForEach(c => c.Dump());
+                    $"//<<<<<<<<<<<<<<<<<<<<<<<<:{id}".Dump();
                 });
             }
         }
