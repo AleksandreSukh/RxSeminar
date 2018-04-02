@@ -15,24 +15,56 @@ namespace RxUsageSample
     {
         static void Main(string[] args)
         {
+            //უბრალოდ_ფილტრი();
 
-            //=======================================================================================
-            var interval = Observable.Interval(TimeSpan.FromMilliseconds(1000));
-            interval.Dump();
-            var ათეულები = interval.Select(i => (i / 10) % 10);
+            //Window();
 
-            ათეულები.Dump();
-
-            var ათეულები_მარტო = ათეულები.DistinctUntilChanged();
-
-            ათეულები_მარტო.Dump();
+            //ცვლილებაზე_რეაგირება();
 
 
             //მაუსის_ივენთებზე();
 
-            //Window();
 
             System.Threading.Thread.Sleep(-1);
+        }
+
+        //NetworkCheckerSimulation
+        private static void ცვლილებაზე_რეაგირება()
+        {
+            var random = new Random();
+
+            var eventSequence = Observable.Interval(TimeSpan.FromMilliseconds(1000))
+                .Select(i => random.Next(1, 4) != 3)
+                .Take(20);
+
+            eventSequence
+                .Select(currentValue =>
+                {
+                    currentValue.Dump();
+                    return currentValue;
+                })
+                .DistinctUntilChanged()
+                .Select(currentValue =>
+                {
+                    var res = currentValue ? "Connection OK" : "Disconnected";
+                    res.Dump();
+                    return res;
+                })
+                .DumpLatest();
+        }
+
+        private static void უბრალოდ_ფილტრი()
+        {
+            var interval = Observable.Interval(TimeSpan.FromMilliseconds(1000));
+            interval.DumpLatest();
+            var ათეულები = interval.Select(i => (i / 10) % 10);
+
+            ათეულები.Dump("Ateulebi");
+
+            var ათეულები_მარტო = ათეულები.DistinctUntilChanged();
+
+            ათეულები_მარტო.Dump();
+            ათეულები_მარტო.DumpLatest("Marto_ateulebi");
         }
 
 
@@ -99,14 +131,24 @@ namespace RxUsageSample
 
     public static class LinqPadLike
     {
-        public static void DumpLatest<T>(this IObservable<T> observable)
+        public static void DumpLatest<T>(this IObservable<T> observable, string id = null)
         {
-            observable.Subscribe(o => Console.WriteLine(o));
+            if (id == null)
+                id = GetObservableId(observable);
+            observable.Subscribe(o =>
+            {
+                Console.WriteLine($"//||||||||||||||||||||||||:{id}");
+                Dump(o);
+            });
         }
 
         static ConcurrentDictionary<object, List<object>> CurrentlyBeingDumped = new ConcurrentDictionary<object, List<object>>();
 
-        public static void Dump<T>(this IObservable<T> observable)
+        public static void Dump<T>(this T obj)
+        {
+            Console.WriteLine(obj);
+        }
+        public static void Dump<T>(this IObservable<T> observable, string id = null)
         {
             var contains = CurrentlyBeingDumped.ContainsKey(observable);
             var current = CurrentlyBeingDumped.GetOrAdd(observable, o => new List<object>());
@@ -115,13 +157,24 @@ namespace RxUsageSample
                 observable.Subscribe(o =>
                 {
                     current.Add(o);
-                    var id = observable.ToString().Split('.').Last();
+                    if (id == null)
+                        id = GetObservableId(observable);
                     Console.WriteLine($"//>>>>>>>>>>>>>>>>>>>>>>>>:{id}");
                     current.ForEach(c => Console.WriteLine(c));
                     Console.WriteLine($"//<<<<<<<<<<<<<<<<<<<<<<<<:{id}");
                 });
             }
         }
+
+        private static string GetObservableId<T>(IObservable<T> observable)
+        {
+            return GetObjectId(observable);
+        }
+        private static string GetObjectId<T>(T obj)
+        {
+            return obj.ToString().Split('.').Last();
+        }
+
     }
 
 }
