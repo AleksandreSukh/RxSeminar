@@ -21,9 +21,7 @@ namespace RxUsageSample
 
             //ცვლილებაზე_რეაგირება();
 
-
             //მაუსის_ივენთებზე();
-
 
             System.Threading.Thread.Sleep(-1);
         }
